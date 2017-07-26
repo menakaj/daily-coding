@@ -1,12 +1,15 @@
 package hackerrank.ssq;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class SSQTest {
+
+    private static Map<Integer, List<Sale>> daySale = new HashMap<>();
 
     private static class Query extends Sale {
 
@@ -74,7 +77,7 @@ public class SSQTest {
         }
 
         public String toString() {
-            return day + " " + pid + " " + cid + " " + region + " " + state;
+            return day + " " + pid + " " + cid + " " + state + " " + region;
         }
     }
 
@@ -147,6 +150,100 @@ public class SSQTest {
         return Integer.valueOf(s);
     }
 
+    private static void putToMap(Sale sale) {
+        if (daySale.get(sale.day) == null) {
+            List<Sale> sales = new ArrayList<>();
+            sales.add(sale);
+            daySale.put(sale.day, sales);
+        } else {
+            daySale.get(sale.day).add(sale);
+        }
+    }
+
+    private static int evaluateQuery(Query query) {
+        List<Sale> salesTobeEveluated;
+        if (daySale.get(query.getDay()) == null) {
+            return 0;
+        } else if (query.getEndDate() != 0){
+            salesTobeEveluated = getSalesForRange(query.getDay(), query.getEndDate());
+            return execute(salesTobeEveluated, query);
+        } else {
+            salesTobeEveluated = daySale.get(query.getDay());
+            return execute(salesTobeEveluated, query);
+        }
+//        return 0;
+    }
+
+    private static int execute(List<Sale> sales, Query query) {
+
+        //check for pid, cid, sid and region.
+
+        List<Sale> samePid = new ArrayList<>();
+        List<Sale> pidcid = new ArrayList<>();
+        List<Sale> pidcidsid = new ArrayList<>();
+        List<Sale> pidcidsidrid = new ArrayList<>();
+
+
+        if (query.getPid() == -1) {
+            samePid.addAll(sales);
+        } else {
+            for (Sale sale : sales) {
+                if (sale.getPid() == query.getPid()) {
+                    samePid.add(sale);
+                }
+            }
+        }
+
+
+        if (query.getCid() == 0) {
+            pidcid.addAll(samePid);
+        } else {
+            for (Sale s : samePid) {
+                if (s.getCid() != 0) {
+                    if (s.getCid() == query.getCid()) {
+                        pidcid.add(s);
+                    }
+                }
+            }
+        }
+
+        if (query.getState() == -1) {
+            pidcidsid.addAll(pidcid);
+        } else {
+            for (Sale s : pidcid) {
+                if (s.getState() == query.getState()) {
+                    pidcidsid.add(s);
+                }
+            }
+        }
+
+        if (query.getRegion() == 0 || query.getRegion() == -1) {
+            pidcidsidrid.addAll(pidcidsid);
+        } else {
+            for (Sale s : pidcidsid) {
+                if (s.getRegion() != 0) {
+                    if (s.getRegion() == query.getRegion()) {
+                        pidcidsidrid.add(s);
+                    }
+                }
+            }
+        }
+
+        return pidcidsidrid.size();
+
+    }
+
+    private static List<Sale> getSalesForRange (int startDate, int endDate) {
+        List<Sale> sales = new ArrayList<>();
+
+        for (int i = startDate; i <= endDate; i++) {
+            sales.addAll(daySale.get(i));
+        }
+
+        return sales;
+
+    }
+
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -158,9 +255,13 @@ public class SSQTest {
             String line = scanner.nextLine();
 
             if (line.contains("S")) {
-                System.out.println("Sale: " + createSale(line));
+                Sale sale = createSale(line);
+//                System.out.println("Sale: " + sale);
+                putToMap(sale);
             } else {
-                System.out.println("Query: " + createQuery(line));
+                Query query = createQuery(line);
+//                System.out.println("Query: " + query);
+                System.out.println(evaluateQuery(query));
             }
 
         }
